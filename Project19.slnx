@@ -1,1 +1,4 @@
-<Solution />
+<Solution>
+  <Project Path="CodeOcr.Api/CodeOcr.Api.csproj" />
+  <Project Path="CodeOcr.Tests/CodeOcr.Tests.csproj" />
+</Solution>
