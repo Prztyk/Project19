@@ -1,4 +1,33 @@
-Wersja języka `C# 12` wprowadziła mechanizm o nazwie `Primary Constructors`. Before `C# 12`, you had to write a lot of boilerplate code to achieve the same result: declaring private fields, creating a constructor, and assigning the parameters to those fields.
+## Exception handling
+Validating with reduced boilerplate code, make your codebase cleaner, and optimize performance.
+<details>
+<summary>Kod dla C# < 6 </summary>
+
+```csharp
+public void ProcessFile(string file)
+{
+    if (file == null)
+    {
+        throw new ArgumentNullException(nameof(file));
+    }
+    
+    // Process the file...
+}
+```
+
+</details>
+
+```csharp
+public void ProcessFile(string file)
+{
+    ArgumentNullException.ThrowIfNull(file);
+    
+    // Process the file...
+}
+```
+
+## Primary Constructors
+`C# 12` introduced `Primary Constructors`. Before `C# 12`, you had to write a lot of boilerplate code to achieve the same result: declaring private fields, creating a constructor, and assigning the parameters to those fields.
 
 With `primary constructors`, the compiler automatically handles that for you. The parameters (applicationOptions, hostEnvironment, logger) are in scope for the entire class body and can be used directly in your methods or to initialize properties.
 
@@ -41,4 +70,17 @@ public sealed class DiagnosticService(
         logger.LogInformation("Service is running...");
     }
 }
+```
+
+<details>
+<summary>Kod dla C# < 12 </summary>
+
+```csharp
+old code
+```
+
+</details>
+
+```csharp
+new code
 ```

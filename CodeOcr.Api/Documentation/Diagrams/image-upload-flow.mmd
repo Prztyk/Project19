@@ -1,0 +1,14 @@
+flowchart TD
+    A[Client sends multipart POST] --> B[ASP.NET Core binds file to IFormFile]
+    B --> C[ImageFileValidator receives file metadata]
+    C --> D{File empty?}
+    D -- Yes --> E[Return 400 empty_file]
+    D -- No --> F{File exceeds size limit?}
+    F -- Yes --> G[Return 400 file_too_large]
+    F -- No --> H[Remove path from display filename]
+    H --> I{Extension allowed?}
+    I -- No --> J[Return 400 unsupported_file_extension]
+    I -- Yes --> K{Content type allowed?}
+    K -- No --> L[Return 400 unsupported_content_type]
+    K -- Yes --> M[Create ImageUploadResponse]
+    M --> N[Return 200 with file metadata]
