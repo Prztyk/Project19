@@ -1,0 +1,1 @@
+Invoke-RestMethod -Method Get -Uri "https://localhost:7207/api/diagnostics"

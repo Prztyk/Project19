@@ -1,0 +1,11 @@
+@CodeOcrApi_HostAddress = https://localhost:7207
+
+POST {{CodeOcrApi_HostAddress}}/api/images/validate
+Content-Type: multipart/form-data; boundary=Project19Boundary
+
+--Project19Boundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ..Tests\Powershell\sample.png
+--Project19Boundary--
