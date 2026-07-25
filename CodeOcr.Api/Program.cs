@@ -1,8 +1,8 @@
 using CodeOcr.Api.Configuration;
 using CodeOcr.Api.Contracts;
 using CodeOcr.Api.Services;
+using CodeOcr.Api.Storage;
 using CodeOcr.Api.Validation;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,8 +28,18 @@ builder.Services
         "At least one image content type must be configured.")
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<ImageStorageOptions>()
+    .Bind(builder.Configuration.GetSection(ImageStorageOptions.SectionName))
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(
+            options.DirectoryPath),
+        "The image storage directory must be configured.")
+    .ValidateOnStart();
+
 builder.Services.AddSingleton<IDiagnosticService, DiagnosticService>();
 builder.Services.AddSingleton<IImageFileValidator, ImageFileValidator>();
+builder.Services.AddSingleton<IImageFileStorage,LocalImageFileStorage>();
 
 var app = builder.Build();
 
@@ -57,47 +67,152 @@ app.MapPost(
 
             if (!validationResult.IsValid)
             {
-                return Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Image upload validation failed.",
-                    detail: validationResult.ErrorMessage,
-                    extensions: new Dictionary<string, object?>
-                    {
-                        ["errorCode"] = validationResult.ErrorCode
-                    });
+                return CreateValidationProblem(
+                    validationResult);
             }
 
-            if (validationResult.DetectedFormat is not
-                ImageFileFormat detectedFormat)
-            {
-                throw new InvalidOperationException(
-                    "Successful image validation did not provide " +
-                    "a detected format.");
-            }
-
-            string normalizedFileName =
-                file.FileName.Replace('\\', '/');
+            ImageFileFormat detectedFormat =
+                GetDetectedFormat(validationResult);
 
             string safeFileName =
-                Path.GetFileName(normalizedFileName);
-
-            string extension =
-                Path.GetExtension(safeFileName);
+                GetSafeFileName(file.FileName);
 
             var response = new ImageUploadResponse(
                 FileName: safeFileName,
-                Extension: extension,
+                Extension: Path.GetExtension(safeFileName),
                 ContentType: file.ContentType,
                 SizeBytes: file.Length,
-                DetectedFormat: detectedFormat
-                    .ToString()
-                    .ToLowerInvariant());
+                DetectedFormat: ToApiFormat(detectedFormat));
 
             return Results.Ok(response);
         })
     .DisableAntiforgery()
     .WithName("ValidateImageUpload");
 
+app.MapPost(
+        "/api/images",
+        async Task<IResult> (
+            IFormFile file,
+            IImageFileValidator validator,
+            IImageFileStorage imageFileStorage,
+            ILogger<Program> logger,
+            CancellationToken cancellationToken) =>
+        {
+            ImageFileValidationResult validationResult =
+                await validator.ValidateAsync(
+                    file,
+                    cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                return CreateValidationProblem(
+                    validationResult);
+            }
+
+            ImageFileFormat detectedFormat =
+                GetDetectedFormat(validationResult);
+
+            StoredImageFile storedImage;
+
+            try
+            {
+                storedImage =
+                    await imageFileStorage.SaveAsync(
+                        file,
+                        detectedFormat,
+                        cancellationToken);
+            }
+            catch (IOException exception)
+            {
+                logger.LogError(
+                    exception,
+                    "An I/O error occurred while storing an image.");
+
+                return CreateStorageProblem();
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                logger.LogError(
+                    exception,
+                    "The application does not have permission " +
+                    "to store an image.");
+
+                return CreateStorageProblem();
+            }
+
+            var response = new StoredImageResponse(
+                ImageId: storedImage.Id,
+                OriginalFileName: GetSafeFileName(
+                    file.FileName),
+                StoredFileName: storedImage.StoredFileName,
+                ContentType: file.ContentType,
+                SizeBytes: storedImage.SizeBytes,
+                DetectedFormat: ToApiFormat(
+                    detectedFormat),
+                StoredAtUtc: storedImage.StoredAtUtc);
+
+            return Results.Ok(response);
+        })
+    .DisableAntiforgery()
+    .WithName("StoreImage");
+
 app.Run();
+
+static IResult CreateValidationProblem(
+    ImageFileValidationResult validationResult)
+{
+    return Results.Problem(
+        statusCode: StatusCodes.Status400BadRequest,
+        title: "Image upload validation failed.",
+        detail: validationResult.ErrorMessage,
+        extensions: new Dictionary<string, object?>
+        {
+            ["errorCode"] = validationResult.ErrorCode
+        });
+}
+
+static IResult CreateStorageProblem()
+{
+    return Results.Problem(
+        statusCode:
+            StatusCodes.Status500InternalServerError,
+        title: "Image storage failed.",
+        detail:
+            "The uploaded image could not be stored.",
+        extensions: new Dictionary<string, object?>
+        {
+            ["errorCode"] = "image_storage_failed"
+        });
+}
+
+static ImageFileFormat GetDetectedFormat(
+    ImageFileValidationResult validationResult)
+{
+    if (validationResult.DetectedFormat is
+        ImageFileFormat detectedFormat)
+    {
+        return detectedFormat;
+    }
+
+    throw new InvalidOperationException(
+        "Successful image validation did not provide " +
+        "a detected format.");
+}
+
+static string GetSafeFileName(string fileName)
+{
+    string normalizedFileName =
+        fileName.Replace('\\', '/');
+
+    return Path.GetFileName(normalizedFileName);
+}
+
+static string ToApiFormat(
+    ImageFileFormat detectedFormat)
+{
+    return detectedFormat
+        .ToString()
+        .ToLowerInvariant();
+}
 
 public partial class Program;

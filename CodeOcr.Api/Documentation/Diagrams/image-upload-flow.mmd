@@ -1,30 +1,31 @@
 flowchart TD
     A[Client sends multipart image] --> B[ASP.NET Core binds IFormFile]
-    B --> C{File empty?}
+    B --> C[ImageFileValidator validates metadata and signature]
 
-    C -- Yes --> C1[400 empty_file]
-    C -- No --> D{File exceeds size limit?}
+    C --> D{Validation successful?}
+    D -- No --> E[Return 400 ProblemDetails]
+    D -- Yes --> F[Obtain detected image format]
 
-    D -- Yes --> D1[400 file_too_large]
-    D -- No --> E{Extension allowed?}
+    F --> G[Generate new GUID]
+    G --> H[Map detected format to canonical extension]
+    H --> I[Build generated stored filename]
+    I --> J[Create storage directory if needed]
 
-    E -- No --> E1[400 unsupported_file_extension]
-    E -- Yes --> F{Content type allowed?}
+    J --> K[Open destination with FileMode.CreateNew]
+    K --> L[Copy uploaded bytes asynchronously]
 
-    F -- No --> F1[400 unsupported_content_type]
-    F -- Yes --> G[Map extension and content type to formats]
+    L --> M{Copy successful?}
+    M -- No --> N[Dispose output stream]
+    N --> O[Delete partially written file]
+    O --> P[Return generic 500 ProblemDetails]
 
-    G --> H{Metadata formats agree?}
-    H -- No --> H1[400 file_metadata_mismatch]
-    H -- Yes --> I[Open uploaded file stream]
+    M -- Yes --> Q[Return storage metadata]
+    Q --> R[200 OK]
 
-    I --> J[Read up to 12 header bytes]
-    J --> K{Signature recognized?}
-
-    K -- No --> K1[400 unrecognized_file_signature]
-    K -- Yes --> L{Detected format matches metadata?}
-
-    L -- No --> L1[400 file_signature_mismatch]
-    L -- Yes --> M[Return metadata and detected format]
-
-    M --> N[200 OK]
+    subgraph Security boundary
+        S[Original client filename]
+        T[Sanitize for display only]
+        U[Never use it in destination path]
+        S --> T
+        T --> U
+    end

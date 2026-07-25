@@ -26,3 +26,10 @@ It then compares the detected value with the expected format:
 extension format == content-type format == detected format
 ```
 Only then is the request accepted.
+
+**Never use the original filename for storage**
+The server creates a name similar to: 92b2629d9aa34ac59893eb2f98422af0.png
+
+**Use the detected format for the extension**
+
+**Do not expose the physical path**

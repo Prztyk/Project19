@@ -16,15 +16,24 @@ The application will eventually:
 
 ## Current status
 
-Step 1 provides:
+## Current status
 
-- an ASP.NET Core API,
-- basic application configuration,
-- dependency injection,
+The API currently provides:
+
 - a diagnostic endpoint,
-- an integration test.
+- single-image multipart upload,
+- configurable file-size validation,
+- filename-extension validation,
+- declared content-type validation,
+- PNG, JPEG, and WebP signature detection,
+- consistency checks between extension, content type, and file bytes.
 
-The project does not yet provide image upload or OCR functionality.
+Uploaded files are not saved or processed with OCR yet.
+
+## Planned next step
+
+Introduce temporary local file storage using application-generated filenames,
+without adding database persistence or OCR processing.
 
 ## Requirements
 
