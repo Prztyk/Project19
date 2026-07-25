@@ -45,10 +45,15 @@ app.MapGet(
 
 app.MapPost(
         "/api/images/validate",
-        (IFormFile file, IImageFileValidator validator) =>
+        async Task<IResult> (
+            IFormFile file,
+            IImageFileValidator validator,
+            CancellationToken cancellationToken) =>
         {
             ImageFileValidationResult validationResult =
-                validator.Validate(file);
+                await validator.ValidateAsync(
+                    file,
+                    cancellationToken);
 
             if (!validationResult.IsValid)
             {
@@ -62,14 +67,31 @@ app.MapPost(
                     });
             }
 
-            string safeFileName = Path.GetFileName(file.FileName);
-            string extension = Path.GetExtension(safeFileName);
+            if (validationResult.DetectedFormat is not
+                ImageFileFormat detectedFormat)
+            {
+                throw new InvalidOperationException(
+                    "Successful image validation did not provide " +
+                    "a detected format.");
+            }
+
+            string normalizedFileName =
+                file.FileName.Replace('\\', '/');
+
+            string safeFileName =
+                Path.GetFileName(normalizedFileName);
+
+            string extension =
+                Path.GetExtension(safeFileName);
 
             var response = new ImageUploadResponse(
                 FileName: safeFileName,
                 Extension: extension,
                 ContentType: file.ContentType,
-                SizeBytes: file.Length);
+                SizeBytes: file.Length,
+                DetectedFormat: detectedFormat
+                    .ToString()
+                    .ToLowerInvariant());
 
             return Results.Ok(response);
         })

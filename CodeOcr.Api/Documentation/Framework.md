@@ -72,8 +72,71 @@ public sealed class DiagnosticService(
 }
 ```
 
+## Range Operator (..)
+
 <details>
-<summary>Kod dla C# < 12 </summary>
+<summary>Kod dla C# < 8 </summary>
+
+```csharp
+var numbers = new int[] { 10, 20, 30, 40, 50, 60 };
+
+// Get elements from index 1 taking 3 items (20, 30, 40)
+var slice = numbers.Skip(1).Take(3).ToArray();
+
+// Get the last item (60)
+var lastItem = numbers[numbers.Length - 1];
+
+// Get a substring (first 3 chars)
+var text = "Hello World";
+var sub = text.Substring(0, 3); // "Hel"
+```
+
+</details>
+
+```csharp
+var numbers = new int[] { 10, 20, 30, 40, 50, 60 };
+
+// Get elements from index 1 up to (but excluding) index 4 (20, 30, 40)
+var slice = numbers[1..4]; 
+
+// ..3 means "from the start up to index 3".
+
+// 2.. means "from index 2 to the very end".
+
+// .. means "the entire collection" (a full copy).
+
+// Get the last item using the ^ (hat) operator
+var lastItem = numbers[^1]; 
+
+// Get a slice of a string
+var text = "Hello World";
+var sub = text[0..3]; // "Hel"
+```
+
+## UTF-8 String Literals
+
+<details>
+<summary>Kod dla C# < 11 </summary>
+
+```csharp
+// Option 1: Allocates a new byte array at runtime via Encoding
+byte[] riffHeader = Encoding.UTF8.GetBytes("RIFF"); 
+
+// Option 2: Verbose, hard-to-read hex/decimal bytes
+byte[] riffHeaderBytes = new byte[] { 0x52, 0x49, 0x46, 0x46 };
+```
+
+</details>
+
+```csharp
+// Compiled directly into the assembly as a UTF-8 byte span!
+ReadOnlySpan<byte> riffHeader = "RIFF"u8;
+```
+
+## Template
+
+<details>
+<summary>Kod dla C# < 11 </summary>
 
 ```csharp
 old code

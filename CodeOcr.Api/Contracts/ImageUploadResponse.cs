@@ -4,4 +4,5 @@ public sealed record ImageUploadResponse(
     string FileName,
     string Extension,
     string ContentType,
-    long SizeBytes);
+    long SizeBytes,
+    string DetectedFormat);

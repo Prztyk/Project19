@@ -1,14 +1,30 @@
 flowchart TD
-    A[Client sends multipart POST] --> B[ASP.NET Core binds file to IFormFile]
-    B --> C[ImageFileValidator receives file metadata]
-    C --> D{File empty?}
-    D -- Yes --> E[Return 400 empty_file]
-    D -- No --> F{File exceeds size limit?}
-    F -- Yes --> G[Return 400 file_too_large]
-    F -- No --> H[Remove path from display filename]
-    H --> I{Extension allowed?}
-    I -- No --> J[Return 400 unsupported_file_extension]
-    I -- Yes --> K{Content type allowed?}
-    K -- No --> L[Return 400 unsupported_content_type]
-    K -- Yes --> M[Create ImageUploadResponse]
-    M --> N[Return 200 with file metadata]
+    A[Client sends multipart image] --> B[ASP.NET Core binds IFormFile]
+    B --> C{File empty?}
+
+    C -- Yes --> C1[400 empty_file]
+    C -- No --> D{File exceeds size limit?}
+
+    D -- Yes --> D1[400 file_too_large]
+    D -- No --> E{Extension allowed?}
+
+    E -- No --> E1[400 unsupported_file_extension]
+    E -- Yes --> F{Content type allowed?}
+
+    F -- No --> F1[400 unsupported_content_type]
+    F -- Yes --> G[Map extension and content type to formats]
+
+    G --> H{Metadata formats agree?}
+    H -- No --> H1[400 file_metadata_mismatch]
+    H -- Yes --> I[Open uploaded file stream]
+
+    I --> J[Read up to 12 header bytes]
+    J --> K{Signature recognized?}
+
+    K -- No --> K1[400 unrecognized_file_signature]
+    K -- Yes --> L{Detected format matches metadata?}
+
+    L -- No --> L1[400 file_signature_mismatch]
+    L -- Yes --> M[Return metadata and detected format]
+
+    M --> N[200 OK]

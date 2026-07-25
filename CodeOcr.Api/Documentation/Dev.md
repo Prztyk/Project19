@@ -74,3 +74,7 @@ PS E:\> powershell
 PS E:\> where pwsh
 PS E:\> where powershell
 ```
+
+## Patterns
+`Result Object / Notification Pattern`  
+Wrapping the outcome of an operation (status, errors, data) in a designated object rather than throwing exceptions or returning raw values.

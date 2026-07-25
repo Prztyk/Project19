@@ -2,5 +2,7 @@
 
 public interface IImageFileValidator
 {
-    ImageFileValidationResult Validate(IFormFile file);
+    Task<ImageFileValidationResult> ValidateAsync(
+        IFormFile file, 
+        CancellationToken cancellationToken);
 }

@@ -1,5 +1,5 @@
 $baseUrl = "https://localhost:7207"
-$imagePath = "sample.png"
+$imagePath = (Get-Item -LiteralPath "sample.png").FullName
 
 if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
     throw "Image file was not found: $imagePath"

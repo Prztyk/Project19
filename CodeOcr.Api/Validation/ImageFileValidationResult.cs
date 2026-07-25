@@ -2,13 +2,16 @@
 
 public sealed record ImageFileValidationResult(
     bool IsValid,
+    ImageFileFormat? DetectedFormat,
     string? ErrorCode,
     string? ErrorMessage)
 {
-    public static ImageFileValidationResult Success()
+    public static ImageFileValidationResult Success(
+        ImageFileFormat detectedFormat)
     {
         return new ImageFileValidationResult(
             IsValid: true,
+            DetectedFormat: detectedFormat,
             ErrorCode: null,
             ErrorMessage: null);
     }
@@ -22,6 +25,7 @@ public sealed record ImageFileValidationResult(
 
         return new ImageFileValidationResult(
             IsValid: false,
+            DetectedFormat: null,
             ErrorCode: errorCode,
             ErrorMessage: errorMessage);
     }
