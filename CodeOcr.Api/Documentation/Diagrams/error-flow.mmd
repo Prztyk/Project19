@@ -1,0 +1,31 @@
+flowchart TD
+    A[Client sends request] --> B[Exception Handler Middleware]
+    B --> C[Status Code Pages Middleware]
+    C --> D[Minimal API endpoint]
+
+    D --> E{Expected validation failure?}
+    E -- Yes --> F[Create 400 ProblemDetails]
+    F --> G[Add errorCode and traceId]
+    G --> H[Return response]
+
+    E -- No --> I[Call application service]
+    I --> J{Operation succeeds?}
+
+    J -- Yes --> K[Return successful response]
+
+    J -- No --> L[Service cleans partial resources]
+    L --> M[Translate technical exception]
+    M --> N[Throw application exception]
+
+    N --> O[GlobalExceptionHandler]
+    O --> P[Map exception to status and errorCode]
+    P --> Q[Log full technical exception]
+    Q --> R[Create safe ProblemDetails]
+    R --> S[Add traceId]
+    S --> H
+
+    D --> T{No endpoint matches?}
+    T -- Yes --> U[404 without response body]
+    U --> V[Status Code Pages creates ProblemDetails]
+    V --> W[Add resource_not_found and traceId]
+    W --> H

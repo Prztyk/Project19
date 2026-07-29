@@ -34,8 +34,6 @@ public sealed class LocalImageFileStorage : IImageFileStorage
     {
         ArgumentNullException.ThrowIfNull(file);
 
-        Directory.CreateDirectory(_storageDirectoryPath);
-
         Guid imageId = Guid.NewGuid();
         string extension = GetCanonicalExtension(detectedFormat);
         string storedFileName = $"{imageId:N}{extension}";
@@ -48,6 +46,9 @@ public sealed class LocalImageFileStorage : IImageFileStorage
 
         try
         {
+            Directory.CreateDirectory(
+                _storageDirectoryPath);
+
             var streamOptions = new FileStreamOptions
             {
                 Mode = FileMode.CreateNew,
@@ -67,11 +68,25 @@ public sealed class LocalImageFileStorage : IImageFileStorage
                     cancellationToken);
             }
         }
-        catch
+        catch (Exception exception)
         {
             if (destinationFileCreated)
             {
                 TryDeletePartialFile(destinationPath);
+            }
+
+            if (exception is OperationCanceledException)
+            {
+                throw;
+            }
+
+            if (exception is IOException or
+                UnauthorizedAccessException)
+            {
+                throw new ImageStorageException(
+                    "The image file could not be written " +
+                    "to local storage.",
+                    exception);
             }
 
             throw;
@@ -112,8 +127,7 @@ public sealed class LocalImageFileStorage : IImageFileStorage
         {
             _logger.LogWarning(
                 cleanupException,
-                "Could not remove partially written image file " +
-                "{StoredFileName}.",
+                "Could not remove partially written image file {StoredFileName}.",
                 Path.GetFileName(destinationPath));
         }
     }

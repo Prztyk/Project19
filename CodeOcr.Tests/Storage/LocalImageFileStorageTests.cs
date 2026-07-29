@@ -38,20 +38,27 @@ public sealed class LocalImageFileStorageTests
             var storage = new LocalImageFileStorage(
                 options,
                 hostEnvironment,
-                NullLogger<
-                    LocalImageFileStorage>.Instance);
+                NullLogger<LocalImageFileStorage>.Instance);
 
             IFormFile failingFile =
                 new FailingFormFile();
 
             // Act
-            await Assert.ThrowsAsync<IOException>(
-                () => storage.SaveAsync(
-                    failingFile,
-                    ImageFileFormat.Png,
-                    CancellationToken.None));
+            ImageStorageException exception =
+                await Assert.ThrowsAsync<ImageStorageException>(
+                    () => storage.SaveAsync(
+                        failingFile,
+                        ImageFileFormat.Png,
+                        CancellationToken.None));
 
             // Assert
+            Assert.IsType<IOException>(
+                exception.InnerException);
+
+            Assert.Equal(
+                "Simulated storage failure.",
+                exception.InnerException.Message);
+
             Assert.True(
                 Directory.Exists(temporaryDirectory));
 
@@ -69,7 +76,6 @@ public sealed class LocalImageFileStorageTests
             }
         }
     }
-
     private sealed class FailingFormFile : IFormFile
     {
         public string ContentType => "image/png";

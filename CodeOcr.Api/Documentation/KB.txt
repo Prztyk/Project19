@@ -1,0 +1,16 @@
+1. Graphic files signatures
+
+| Format | Required header                              |
+| ------ | -------------------------------------------- |
+| PNG    | `89 50 4E 47 0D 0A 1A 0A`                    |
+| JPEG   | `FF D8 FF`                                   |
+| WebP   | `RIFF` at bytes 0–3 and `WEBP` at bytes 8–11 |
+
+2. The API error model
+| Situation               | Status | Error code               |
+| ----------------------- | ------ | ------------------------ |
+| Invalid upload          |    400 | specific validation code |
+| Missing endpoint        |    404 | `resource_not_found`     |
+| Unsupported HTTP method |    405 | `method_not_allowed`     |
+| Image storage failure   |    500 | `image_storage_failed`   |
+| Unknown server failure  |    500 | `internal_server_error`  |
