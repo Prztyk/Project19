@@ -1,0 +1,25 @@
+flowchart TD
+    A[Application calls IPaddleOcrClient] --> B[Validate method arguments]
+    B --> C[Sanitize multipart filename]
+    C --> D[Create ByteArrayContent]
+    D --> E[Set validated image content type]
+    E --> F[Create multipart form field named file]
+    F --> G[HttpClient sends POST to configured OCR URL]
+
+    G --> H{Request completed?}
+
+    H -- Connection failure --> I[Translate to Unavailable]
+    H -- Client timeout --> J[Translate to Timeout]
+    H -- Caller cancelled --> K[Preserve OperationCanceledException]
+    H -- Response received --> L{Success status?}
+
+    L -- No --> M[Translate to ServiceError]
+    L -- Yes --> N[Deserialize JSON response]
+
+    N --> O{Valid JSON?}
+    O -- No --> P[Translate to InvalidResponse]
+    O -- Yes --> Q[Validate response structure]
+
+    Q --> R{Contract valid?}
+    R -- No --> P
+    R -- Yes --> S[Return PaddleOcrResponse]

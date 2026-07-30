@@ -86,8 +86,17 @@ The endpoint should not know how physical paths are constructed or how files are
 The storage directory should not be hard-coded in the storage service. The `ImageStorage` configuration section is mapped to: `ImageStorageOptions`
 
 ## Design patterns
-`Centralized Exception Handler`
-
+`Centralized Exception Handler`  
+`Typed Client Pattern`  
+PaddleOcrClient wraps the service-specific use of HttpClient  
+`Exception Translation`  
+Low-level exceptions such as:
+```text
+HttpRequestException
+OperationCanceledException
+JsonException
+```
+do not communicate what failed from the application’s perspective.
 ## Best practices
 `Design for inheritance or else prohibit it`  
 All classes are sealed by default. If a class is designed to be inherited, it should be explicitly marked as `abstract` or `virtual`. If a class is not designed for inheritance, it should be marked as `sealed`.

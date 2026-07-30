@@ -8,3 +8,6 @@
     1. feature: add safe local image storage
 5. Centralized API Error Handling
     1. feature: implement centralized API error handling
+6. PaddleOCR HTTP Client Contract
+    1. feature: add typed PaddleOCR HTTP client
+    

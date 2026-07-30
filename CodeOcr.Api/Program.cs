@@ -1,6 +1,7 @@
 using CodeOcr.Api.Configuration;
 using CodeOcr.Api.Contracts;
 using CodeOcr.Api.ErrorHandling;
+using CodeOcr.Api.Ocr;
 using CodeOcr.Api.Services;
 using CodeOcr.Api.Storage;
 using CodeOcr.Api.Validation;
@@ -70,15 +71,33 @@ builder.Services
     .AddOptions<ImageStorageOptions>()
     .Bind(builder.Configuration.GetSection(ImageStorageOptions.SectionName))
     .Validate(
-        options => !string.IsNullOrWhiteSpace(
-                options.DirectoryPath),
+        options => !string.IsNullOrWhiteSpace(options.DirectoryPath),
         "The image storage directory must be configured.")
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<PaddleOcrOptions>()
+    .Bind(builder.Configuration.GetSection(PaddleOcrOptions.SectionName))
+    .Validate(
+        options => IsValidHttpBaseUrl(options.BaseUrl),
+        "The PaddleOCR base URL must be an absolute HTTP or HTTPS URL.")
+    .Validate(
+        options => IsValidRelativePath(options.RecognizePath),
+        "The PaddleOCR recognize path must be a non-empty relative URL without a leading slash.")
+    .Validate(
+        options => options.TimeoutSeconds is > 0 and <= 300,
+        "The PaddleOCR timeout must be between 1 and 300 seconds.")
+    .ValidateOnStart();
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 builder.Services.AddSingleton<IDiagnosticService, DiagnosticService>();
+
 builder.Services.AddSingleton<IImageFileValidator, ImageFileValidator>();
+
 builder.Services.AddSingleton<IImageFileStorage, LocalImageFileStorage>();
+
+builder.Services.AddHttpClient<IPaddleOcrClient, PaddleOcrClient>();
 
 var app = builder.Build();
 
@@ -122,11 +141,11 @@ app.MapPost(
                 GetSafeFileName(file.FileName);
 
             var response = new ImageUploadResponse(
-                FileName: safeFileName,
-                Extension: Path.GetExtension(safeFileName),
-                ContentType: file.ContentType,
-                SizeBytes: file.Length,
-                DetectedFormat: ToApiFormat(detectedFormat));
+                    FileName: safeFileName,
+                    Extension: Path.GetExtension(safeFileName),
+                    ContentType: file.ContentType,
+                    SizeBytes: file.Length,
+                    DetectedFormat: ToApiFormat(detectedFormat));
 
             return Results.Ok(response);
         })
@@ -164,13 +183,13 @@ app.MapPost(
                     cancellationToken);
 
             var response = new StoredImageResponse(
-                ImageId: storedImage.Id,
-                OriginalFileName: GetSafeFileName(file.FileName),
-                StoredFileName: storedImage.StoredFileName,
-                ContentType: file.ContentType,
-                SizeBytes: storedImage.SizeBytes,
-                DetectedFormat: ToApiFormat(detectedFormat),
-                StoredAtUtc: storedImage.StoredAtUtc);
+                    ImageId: storedImage.Id,
+                    OriginalFileName: GetSafeFileName(file.FileName),
+                    StoredFileName: storedImage.StoredFileName,
+                    ContentType: file.ContentType,
+                    SizeBytes: storedImage.SizeBytes,
+                    DetectedFormat: ToApiFormat(detectedFormat),
+                    StoredAtUtc: storedImage.StoredAtUtc);
 
             return Results.Ok(response);
         })
@@ -222,6 +241,27 @@ static string ToApiFormat(
     return detectedFormat
         .ToString()
         .ToLowerInvariant();
+}
+
+static bool IsValidHttpBaseUrl(
+    string baseUrl)
+{
+    return Uri.TryCreate(
+               baseUrl,
+               UriKind.Absolute,
+               out Uri? uri) &&
+           (uri.Scheme == Uri.UriSchemeHttp ||
+            uri.Scheme == Uri.UriSchemeHttps);
+}
+
+static bool IsValidRelativePath(string relativePath)
+{
+    return
+        !string.IsNullOrWhiteSpace(relativePath) &&
+        !relativePath.StartsWith("/", StringComparison.Ordinal) &&
+        !Uri.IsWellFormedUriString(
+            relativePath,
+            UriKind.Absolute);
 }
 
 public partial class Program;
