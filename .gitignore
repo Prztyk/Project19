@@ -364,3 +364,13 @@ FodyWeavers.xsd
 
 # Locally uploaded images
 CodeOcr.Api/App_Data/
+
+# Python virtual environments
+CodeOcr.OcrService/.venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Python test cache
+.pytest_cache/

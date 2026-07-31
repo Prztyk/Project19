@@ -1,0 +1,22 @@
+flowchart TD
+    A[Developer starts Python virtual environment] --> B[Uvicorn loads app.main]
+    B --> C[FastAPI service listens on localhost:8000]
+
+    D[Client sends multipart POST] --> E[FastAPI binds field named file]
+    E --> F{Content type supported?}
+
+    F -- No --> G[Return 415 detail response]
+    F -- Yes --> H[Read at most 10 MB plus one byte]
+
+    H --> I{File empty?}
+    I -- Yes --> J[Return 400 detail response]
+    I -- No --> K{File exceeds 10 MB?}
+
+    K -- Yes --> L[Return 413 detail response]
+    K -- No --> M[Create deterministic mock OCR result]
+
+    M --> N[Pydantic validates response model]
+    N --> O[Serialize snake case fields using JSON aliases]
+    O --> P[Return lines, fullText, and processingTimeMs]
+
+    P --> Q[.NET PaddleOcrClient can deserialize response]

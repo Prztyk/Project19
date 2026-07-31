@@ -10,4 +10,5 @@
     1. feature: implement centralized API error handling
 6. PaddleOCR HTTP Client Contract
     1. feature: add typed PaddleOCR HTTP client
-    
+7. Local Python OCR Service Skeleton
+    1. feature: add local mock PaddleOCR service

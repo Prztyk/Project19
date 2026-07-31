@@ -6,12 +6,10 @@
 ## How to run
 
 - from visual studio
-
 ```text
 Click run button
 ```
 - from the command line
-
 ```cmd
 c:\> dotnet restore
 c:\> dotnet build
@@ -51,7 +49,7 @@ c:\> dotnet test
 - visual studio .http tests (Tests/HttpTests)
     - api-image-validate-1.http
 
-## Notes
+## Powershell issues
 - how to check current ps version
 ```powershell
 PS E:\> $PSVersionTable
@@ -73,6 +71,37 @@ PS E:\> powershell
 ```powershell
 PS E:\> where pwsh
 PS E:\> where powershell
+```
+
+## Python virtual environment installation
+1. check you have correct version of python installed in the system
+```powershell
+ PS E:\> py -0p
+ ```
+2. go to directory where you want to install python virtual environment
+```powershell
+PS E:\Repo\Project19\CodeOcr.OcrService> py -3.13 -m venv .venv
+```
+3. create requirements.txt & requirements-dev.txt files in main project directory which contains all the dependencies for the project
+4. install all dependencies
+```powershell
+PS E:\Repo\Project19\CodeOcr.OcrService> .\.venv\Scripts\python.exe -m pip install --upgrade pip
+
+PS E:\Repo\Project19\CodeOcr.OcrService> .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+## Python issues
+- how to check exact python version
+```powershell
+ PS E:\> py -3.13 --version
+ ```
+- how to check if installed python is 64-bit
+```powershell
+PS E:\> py -3.13 -c "import platform; print(platform.architecture())"
+```
+- how to verify installed packages
+```powershell
+PS E:\Repo\Project19\CodeOcr.OcrService> .\.venv\Scripts\python.exe -m pip list
 ```
 
 ## Patterns
