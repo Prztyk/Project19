@@ -124,8 +124,7 @@ Low-level exceptions such as:
 HttpRequestException
 OperationCanceledException
 JsonException
-```
-do not communicate what failed from the application’s perspective.
+```  
 ## Best practices
 `Design for inheritance or else prohibit it`  
 All classes are sealed by default. If a class is designed to be inherited, it should be explicitly marked as `abstract` or `virtual`. If a class is not designed for inheritance, it should be marked as `sealed`.

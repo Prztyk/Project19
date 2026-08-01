@@ -1,4 +1,5 @@
-﻿using CodeOcr.Api.Storage;
+﻿using CodeOcr.Api.Ocr;
+using CodeOcr.Api.Storage;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -94,22 +95,57 @@ public sealed class GlobalExceptionHandler(
         {
             ImageStorageException =>
                 new ExceptionMapping(
-                    StatusCode:
-                        StatusCodes
-                            .Status500InternalServerError,
+                    StatusCode: StatusCodes.Status500InternalServerError,
                     Title: "Image storage failed.",
-                    Detail:
-                        "The uploaded image could not be stored.",
+                    Detail: "The uploaded image could not be stored.",
                     ErrorCode: "image_storage_failed"),
+
+            PaddleOcrClientException
+            {
+                FailureKind: PaddleOcrFailureKind.Unavailable
+            } =>
+                new ExceptionMapping(
+                    StatusCode: StatusCodes.Status503ServiceUnavailable,
+                    Title: "OCR service unavailable.",
+                    Detail: "The local OCR service is unavailable.",
+                    ErrorCode: "ocr_service_unavailable"),
+
+            PaddleOcrClientException
+            {
+                FailureKind: PaddleOcrFailureKind.Timeout
+            } =>
+                new ExceptionMapping(
+                    StatusCode: StatusCodes.Status504GatewayTimeout,
+                    Title: "OCR request timed out.",
+                    Detail: "The local OCR service did not respond in time.",
+                    ErrorCode: "ocr_timeout"),
+
+            PaddleOcrClientException
+            {
+                FailureKind: PaddleOcrFailureKind.ServiceError
+            } =>
+                new ExceptionMapping(
+                    StatusCode: StatusCodes.Status502BadGateway,
+                    Title: "OCR service request failed.",
+                    Detail: "The local OCR service returned an unsuccessful response.",
+                    ErrorCode: "ocr_service_error"),
+
+            PaddleOcrClientException
+            {
+                FailureKind:
+                    PaddleOcrFailureKind.InvalidResponse
+            } =>
+                new ExceptionMapping(
+                    StatusCode: StatusCodes.Status502BadGateway,
+                    Title: "Invalid OCR service response.",
+                    Detail: "The local OCR service returned an invalid response.",
+                    ErrorCode: "ocr_invalid_response"),
 
             _ =>
                 new ExceptionMapping(
-                    StatusCode:
-                        StatusCodes
-                            .Status500InternalServerError,
+                    StatusCode: StatusCodes.Status500InternalServerError,
                     Title: "Unexpected server error.",
-                    Detail:
-                        "An unexpected error occurred.",
+                    Detail: "An unexpected error occurred.",
                     ErrorCode: "internal_server_error")
         };
     }

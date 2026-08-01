@@ -2,6 +2,7 @@ using CodeOcr.Api.Configuration;
 using CodeOcr.Api.Contracts;
 using CodeOcr.Api.ErrorHandling;
 using CodeOcr.Api.Ocr;
+using CodeOcr.Api.Ocr.Contracts;
 using CodeOcr.Api.Services;
 using CodeOcr.Api.Storage;
 using CodeOcr.Api.Validation;
@@ -196,6 +197,81 @@ app.MapPost(
     .DisableAntiforgery()
     .WithName("StoreImage");
 
+app.MapPost(
+        "/api/ocr/recognize",
+        async Task<IResult> (
+            HttpContext httpContext,
+            IFormFile file,
+            IImageFileValidator validator,
+            IPaddleOcrClient paddleOcrClient,
+            IImageFileStorage imageFileStorage,
+            CancellationToken cancellationToken) =>
+        {
+            ImageFileValidationResult validationResult =
+                await validator.ValidateAsync(
+                    file,
+                    cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                return CreateValidationProblem(
+                    httpContext,
+                    validationResult);
+            }
+
+            ImageFileFormat detectedFormat = GetDetectedFormat(validationResult);
+
+            string safeFileName = GetSafeFileName(file.FileName);
+
+            byte[] imageContent =
+                await ReadFileBytesAsync(
+                    file,
+                    cancellationToken);
+
+            PaddleOcrResponse paddleOcrResponse =
+                await paddleOcrClient.RecognizeAsync(
+                    imageContent,
+                    safeFileName,
+                    file.ContentType,
+                    cancellationToken);
+
+            StoredImageFile storedImage =
+                await imageFileStorage.SaveAsync(
+                    file,
+                    detectedFormat,
+                    cancellationToken);
+
+            OcrLineResponse[] lines =
+                paddleOcrResponse.Lines
+                    .Select(
+                        line =>
+                            new OcrLineResponse(
+                                Text: line.Text,
+                                Confidence: line.Confidence))
+                    .ToArray();
+
+            var rawOcr =
+                new RawOcrResultResponse(
+                    Lines: lines,
+                    FullText: paddleOcrResponse.FullText,
+                    ProcessingTimeMs: paddleOcrResponse.ProcessingTimeMs);
+
+            var response =
+                new ImageOcrResponse(
+                    ImageId: storedImage.Id,
+                    OriginalFileName: safeFileName,
+                    StoredFileName: storedImage.StoredFileName,
+                    ContentType: file.ContentType,
+                    SizeBytes: storedImage.SizeBytes,
+                    DetectedFormat: ToApiFormat(detectedFormat),
+                    StoredAtUtc: storedImage.StoredAtUtc,
+                    RawOcr: rawOcr);
+
+            return Results.Ok(response);
+        })
+    .DisableAntiforgery()
+    .WithName("RecognizeImage");
+
 app.Run();
 
 static IResult CreateValidationProblem(
@@ -212,6 +288,26 @@ static IResult CreateValidationProblem(
 
                 ["traceId"] = httpContext.TraceIdentifier
             });
+}
+
+static async Task<byte[]> ReadFileBytesAsync(
+    IFormFile file,
+    CancellationToken cancellationToken)
+{
+    if (file.Length > int.MaxValue)
+    {
+        throw new InvalidOperationException(
+            "The uploaded file is too large to load " +
+            "into memory.");
+    }
+
+    using var memoryStream = new MemoryStream(capacity: (int)file.Length);
+
+    await file.CopyToAsync(
+        memoryStream,
+        cancellationToken);
+
+    return memoryStream.ToArray();
 }
 
 static ImageFileFormat GetDetectedFormat(
@@ -254,7 +350,8 @@ static bool IsValidHttpBaseUrl(
             uri.Scheme == Uri.UriSchemeHttps);
 }
 
-static bool IsValidRelativePath(string relativePath)
+static bool IsValidRelativePath(
+    string relativePath)
 {
     return
         !string.IsNullOrWhiteSpace(relativePath) &&

@@ -1,0 +1,31 @@
+flowchart TD
+    A[Client sends multipart image] --> B[ASP.NET Core binds IFormFile]
+    B --> C[ImageFileValidator validates metadata and signature]
+
+    C --> D{Validation successful?}
+    D -- No --> E[Return 400 ProblemDetails]
+    D -- Yes --> F[Obtain detected image format]
+
+    F --> G[Generate new GUID]
+    G --> H[Map detected format to canonical extension]
+    H --> I[Build generated stored filename]
+    I --> J[Create storage directory if needed]
+
+    J --> K[Open destination with FileMode.CreateNew]
+    K --> L[Copy uploaded bytes asynchronously]
+
+    L --> M{Copy successful?}
+    M -- No --> N[Dispose output stream]
+    N --> O[Delete partially written file]
+    O --> P[Return generic 500 ProblemDetails]
+
+    M -- Yes --> Q[Return storage metadata]
+    Q --> R[200 OK]
+
+    subgraph Security boundary
+        S[Original client filename]
+        T[Sanitize for display only]
+        U[Never use it in destination path]
+        S --> T
+        T --> U
+    end

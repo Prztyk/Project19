@@ -12,3 +12,5 @@
     1. feature: add typed PaddleOCR HTTP client
 7. Local Python OCR Service Skeleton
     1. feature: add local mock PaddleOCR service
+8. End-to-End Mock OCR Flow
+    1. feature: expose end-to-end mock OCR workflow

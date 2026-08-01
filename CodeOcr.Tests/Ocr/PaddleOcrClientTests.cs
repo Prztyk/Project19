@@ -35,7 +35,7 @@ public sealed class PaddleOcrClientTests
 
                     Assert.Equal(
                         new Uri(
-                            "http://localhost:8000/api/ocr"),
+                            "http://127.0.0.1:8000/api/ocr"),
                         request.RequestUri);
 
                     MultipartFormDataContent multipart =
@@ -374,7 +374,7 @@ public sealed class PaddleOcrClientTests
                 new PaddleOcrOptions
                 {
                     BaseUrl =
-                        "http://localhost:8000",
+                        "http://127.0.0.1:8000",
                     RecognizePath =
                         "api/ocr",
                     TimeoutSeconds =

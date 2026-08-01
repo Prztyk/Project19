@@ -1,31 +1,30 @@
 flowchart TD
-    A[Client sends multipart image] --> B[ASP.NET Core binds IFormFile]
-    B --> C[ImageFileValidator validates metadata and signature]
+    A[Client sends multipart image to .NET] --> B[ASP.NET Core binds IFormFile]
+    B --> C[ImageFileValidator checks size, metadata, and signature]
 
     C --> D{Validation successful?}
-    D -- No --> E[Return 400 ProblemDetails]
-    D -- Yes --> F[Obtain detected image format]
+    D -- No --> E[Return 400 validation ProblemDetails]
+    D -- Yes --> F[Sanitize display filename]
 
-    F --> G[Generate new GUID]
-    G --> H[Map detected format to canonical extension]
-    H --> I[Build generated stored filename]
-    I --> J[Create storage directory if needed]
+    F --> G[Copy validated image into byte array]
+    G --> H[PaddleOcrClient creates multipart HTTP request]
+    H --> I[Send image to Python service]
 
-    J --> K[Open destination with FileMode.CreateNew]
-    K --> L[Copy uploaded bytes asynchronously]
+    I --> J{Python service reachable?}
+    J -- No --> K[Return 503 ocr_service_unavailable]
+    J -- Timeout --> L[Return 504 ocr_timeout]
+    J -- Yes --> M{Python response successful?}
 
-    L --> M{Copy successful?}
-    M -- No --> N[Dispose output stream]
-    N --> O[Delete partially written file]
-    O --> P[Return generic 500 ProblemDetails]
+    M -- No --> N[Return 502 ocr_service_error]
+    M -- Yes --> O[Deserialize and validate OCR JSON]
 
-    M -- Yes --> Q[Return storage metadata]
-    Q --> R[200 OK]
+    O --> P{OCR contract valid?}
+    P -- No --> Q[Return 502 ocr_invalid_response]
+    P -- Yes --> R[Store original image with generated filename]
 
-    subgraph Security boundary
-        S[Original client filename]
-        T[Sanitize for display only]
-        U[Never use it in destination path]
-        S --> T
-        T --> U
-    end
+    R --> S{Storage successful?}
+    S -- No --> T[Return 500 image_storage_failed]
+    S -- Yes --> U[Map PaddleOCR DTO to public raw OCR DTO]
+
+    U --> V[Return image metadata and raw OCR]
+    V --> W[200 OK]

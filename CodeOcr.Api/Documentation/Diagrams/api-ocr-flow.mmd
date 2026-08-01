@@ -1,0 +1,5 @@
+flowchart LR
+    A[PowerShell script] -->|HTTPS 7207 or HTTP 5030| B[CodeOcr.Api]
+    B -->|HTTP 8000| C[Python OCR service]
+    C -->|Mock OCR JSON| B
+    B -->|Image metadata and raw OCR| A
