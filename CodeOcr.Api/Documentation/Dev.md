@@ -129,3 +129,5 @@ do not communicate what failed from the application’s perspective.
 ## Best practices
 `Design for inheritance or else prohibit it`  
 All classes are sealed by default. If a class is designed to be inherited, it should be explicitly marked as `abstract` or `virtual`. If a class is not designed for inheritance, it should be marked as `sealed`.
+## To do
+- on webpage i want to have icon green when ocr service is working, red when not

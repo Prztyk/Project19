@@ -26,6 +26,10 @@ From this directory:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
+more detailed output
+```powershell
+.\.venv\Scripts\python.exe -m pytest--verbose
+```
 ## Start the service
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
