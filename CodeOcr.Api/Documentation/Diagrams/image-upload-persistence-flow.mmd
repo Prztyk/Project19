@@ -1,0 +1,28 @@
+flowchart TD
+    A[Client uploads image] --> B[Validate metadata and binary signature]
+    B --> C{Valid image?}
+
+    C -- No --> D[Return 400 ProblemDetails]
+    C -- Yes --> E[Read image bytes]
+
+    E --> F[Send image to Python OCR service]
+    F --> G{OCR successful?}
+
+    G -- No --> H[Return OCR ProblemDetails]
+    G -- Yes --> I[Store original image]
+
+    I --> J{Storage successful?}
+    J -- No --> K[Return image_storage_failed]
+    J -- Yes --> L[Create Images entity]
+
+    L --> M[Create ordered OcrLines entities]
+    M --> N[Save aggregate with EF Core]
+
+    N --> O{Persistence successful?}
+    O -- Yes --> P[Commit SQLite transaction]
+    P --> Q[Return image metadata and raw OCR]
+
+    O -- No --> R[Translate database exception]
+    R --> S[Attempt to delete stored image]
+    S --> T[Log cleanup failure when necessary]
+    T --> U[Return ocr_persistence_failed]

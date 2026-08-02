@@ -8,4 +8,6 @@ public interface IImageFileStorage
         IFormFile file,
         ImageFileFormat detectedFormat,
         CancellationToken cancellationToken);
+
+    Task DeleteAsync(string storedFileName, CancellationToken cancellationToken);
 }

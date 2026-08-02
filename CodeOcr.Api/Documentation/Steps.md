@@ -14,3 +14,5 @@
     1. feature: add local mock PaddleOCR service
 8. End-to-End Mock OCR Flow
     1. feature: expose end-to-end mock OCR workflow
+9. Persist OCR Results in SQLite
+    1. feature: persist raw OCR results in SQLite

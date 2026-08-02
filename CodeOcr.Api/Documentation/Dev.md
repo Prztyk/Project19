@@ -108,11 +108,17 @@ PS E:\Repo\Project19\CodeOcr.OcrService> .\.venv\Scripts\python.exe -m pip list
 `Result Object / Notification Pattern`  
 Wrapping the outcome of an operation (status, errors, data) in a designated object rather than throwing exceptions or returning raw values.
 
+`Compensating Action` (often called a `Compensating Transaction`)  
+Architectural / enterprise integration pattern. When database persistence fails after file creation, the workflow attempts to delete that file.
+
 `Dependency Injection`  
 The endpoint should not know how physical paths are constructed or how files are written. The endpoint depends on: `IImageFileStorage`. The implementation is: `LocalImageFileStorage`.
 
 `Options Pattern`  
 The storage directory should not be hard-coded in the storage service. The `ImageStorage` configuration section is mapped to: `ImageStorageOptions`
+
+`Repository Pattern`  
+IImageOcrRepository separates the workflow from EF Core details.
 
 ## Design patterns
 `Centralized Exception Handler`  

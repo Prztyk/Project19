@@ -39,6 +39,10 @@ related items: [Record](#record)
 
 ## P
 
+### Persisted
+
+Technical term meaning stored permanently, rather than kept only in memory.
+
 ### POCO (Plain Old CLR Object)
 A simple class that does not depend on any framework-specific base class or external library components. It focuses entirely on data and business logic.
 

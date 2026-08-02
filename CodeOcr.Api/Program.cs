@@ -2,10 +2,14 @@ using CodeOcr.Api.Configuration;
 using CodeOcr.Api.Contracts;
 using CodeOcr.Api.ErrorHandling;
 using CodeOcr.Api.Ocr;
-using CodeOcr.Api.Ocr.Contracts;
+using CodeOcr.Api.Persistence;
 using CodeOcr.Api.Services;
 using CodeOcr.Api.Storage;
 using CodeOcr.Api.Validation;
+using CodeOcr.Api.Workflows;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +81,14 @@ builder.Services
     .ValidateOnStart();
 
 builder.Services
+    .AddOptions<DatabaseOptions>()
+    .Bind(builder.Configuration.GetSection(DatabaseOptions.SectionName))
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(options.FilePath),
+        "The database file path must be configured.")
+    .ValidateOnStart();
+
+builder.Services
     .AddOptions<PaddleOcrOptions>()
     .Bind(builder.Configuration.GetSection(PaddleOcrOptions.SectionName))
     .Validate(
@@ -89,6 +101,40 @@ builder.Services
         options => options.TimeoutSeconds is > 0 and <= 300,
         "The PaddleOCR timeout must be between 1 and 300 seconds.")
     .ValidateOnStart();
+
+builder.Services.AddDbContext<CodeOcrDbContext>((serviceProvider, options) =>
+{
+    DatabaseOptions databaseOptions = serviceProvider
+        .GetRequiredService<IOptions<DatabaseOptions>>()
+        .Value;
+
+    IHostEnvironment environment = serviceProvider.GetRequiredService<IHostEnvironment>();
+
+    string databasePath = ResolveDatabaseFilePath(
+        environment.ContentRootPath,
+        databaseOptions.FilePath);
+
+    string? databaseDirectory = Path.GetDirectoryName(databasePath);
+
+    if (string.IsNullOrWhiteSpace(databaseDirectory))
+    {
+        throw new InvalidOperationException(
+            "The configured database file path does not contain a directory.");
+    }
+
+    Directory.CreateDirectory(databaseDirectory);
+
+    string connectionString = new SqliteConnectionStringBuilder
+    {
+        DataSource = databasePath
+    }.ToString();
+
+    options.UseSqlite(connectionString);
+});
+
+builder.Services.AddScoped<IImageOcrRepository, EfImageOcrRepository>();
+
+builder.Services.AddScoped<IImageOcrWorkflow, ImageOcrWorkflow>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -203,69 +249,25 @@ app.MapPost(
             HttpContext httpContext,
             IFormFile file,
             IImageFileValidator validator,
-            IPaddleOcrClient paddleOcrClient,
-            IImageFileStorage imageFileStorage,
+            IImageOcrWorkflow workflow,
             CancellationToken cancellationToken) =>
         {
             ImageFileValidationResult validationResult =
-                await validator.ValidateAsync(
-                    file,
-                    cancellationToken);
+                await validator.ValidateAsync(file, cancellationToken);
 
             if (!validationResult.IsValid)
             {
-                return CreateValidationProblem(
-                    httpContext,
-                    validationResult);
+                return CreateValidationProblem(httpContext, validationResult);
             }
 
             ImageFileFormat detectedFormat = GetDetectedFormat(validationResult);
-
             string safeFileName = GetSafeFileName(file.FileName);
 
-            byte[] imageContent =
-                await ReadFileBytesAsync(
-                    file,
-                    cancellationToken);
-
-            PaddleOcrResponse paddleOcrResponse =
-                await paddleOcrClient.RecognizeAsync(
-                    imageContent,
-                    safeFileName,
-                    file.ContentType,
-                    cancellationToken);
-
-            StoredImageFile storedImage =
-                await imageFileStorage.SaveAsync(
-                    file,
-                    detectedFormat,
-                    cancellationToken);
-
-            OcrLineResponse[] lines =
-                paddleOcrResponse.Lines
-                    .Select(
-                        line =>
-                            new OcrLineResponse(
-                                Text: line.Text,
-                                Confidence: line.Confidence))
-                    .ToArray();
-
-            var rawOcr =
-                new RawOcrResultResponse(
-                    Lines: lines,
-                    FullText: paddleOcrResponse.FullText,
-                    ProcessingTimeMs: paddleOcrResponse.ProcessingTimeMs);
-
-            var response =
-                new ImageOcrResponse(
-                    ImageId: storedImage.Id,
-                    OriginalFileName: safeFileName,
-                    StoredFileName: storedImage.StoredFileName,
-                    ContentType: file.ContentType,
-                    SizeBytes: storedImage.SizeBytes,
-                    DetectedFormat: ToApiFormat(detectedFormat),
-                    StoredAtUtc: storedImage.StoredAtUtc,
-                    RawOcr: rawOcr);
+            ImageOcrResponse response = await workflow.RecognizeAsync(
+                file,
+                detectedFormat,
+                safeFileName,
+                cancellationToken);
 
             return Results.Ok(response);
         })
@@ -285,29 +287,8 @@ static IResult CreateValidationProblem(
         extensions: new Dictionary<string, object?>
             {
                 ["errorCode"] = validationResult.ErrorCode,
-
                 ["traceId"] = httpContext.TraceIdentifier
             });
-}
-
-static async Task<byte[]> ReadFileBytesAsync(
-    IFormFile file,
-    CancellationToken cancellationToken)
-{
-    if (file.Length > int.MaxValue)
-    {
-        throw new InvalidOperationException(
-            "The uploaded file is too large to load " +
-            "into memory.");
-    }
-
-    using var memoryStream = new MemoryStream(capacity: (int)file.Length);
-
-    await file.CopyToAsync(
-        memoryStream,
-        cancellationToken);
-
-    return memoryStream.ToArray();
 }
 
 static ImageFileFormat GetDetectedFormat(
@@ -359,6 +340,16 @@ static bool IsValidRelativePath(
         !Uri.IsWellFormedUriString(
             relativePath,
             UriKind.Absolute);
+}
+
+static string ResolveDatabaseFilePath(string contentRootPath, string configuredFilePath)
+{
+    if (Path.IsPathRooted(configuredFilePath))
+    {
+        return Path.GetFullPath(configuredFilePath);
+    }
+
+    return Path.GetFullPath(Path.Combine(contentRootPath, configuredFilePath));
 }
 
 public partial class Program;

@@ -16,8 +16,6 @@ The application will eventually:
 
 ## Current status
 
-## Current status
-
 The API currently provides:
 
 - a diagnostic endpoint,

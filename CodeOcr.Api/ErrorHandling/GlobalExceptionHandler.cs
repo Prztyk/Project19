@@ -1,4 +1,5 @@
 ﻿using CodeOcr.Api.Ocr;
+using CodeOcr.Api.Persistence;
 using CodeOcr.Api.Storage;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -140,6 +141,13 @@ public sealed class GlobalExceptionHandler(
                     Title: "Invalid OCR service response.",
                     Detail: "The local OCR service returned an invalid response.",
                     ErrorCode: "ocr_invalid_response"),
+
+            ImageOcrPersistenceException =>
+                new ExceptionMapping(
+                    StatusCode: StatusCodes.Status500InternalServerError,
+                    Title: "OCR result persistence failed.",
+                    Detail: "The OCR result could not be saved.",
+                    ErrorCode: "ocr_persistence_failed"),
 
             _ =>
                 new ExceptionMapping(

@@ -108,6 +108,44 @@ public sealed class LocalImageFileStorage : IImageFileStorage
             StoredAtUtc: storedAtUtc);
     }
 
+    public Task DeleteAsync(string storedFileName, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storedFileName);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        string safeFileName = Path.GetFileName(storedFileName);
+
+        if (!string.Equals(safeFileName, storedFileName, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "The stored filename must not contain directory information.",
+                nameof(storedFileName));
+        }
+
+        string filePath = Path.Combine(_storageDirectoryPath, safeFileName);
+
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                return Task.CompletedTask;
+            }
+
+            File.Delete(filePath);
+
+            _logger.LogInformation("Deleted stored image file {StoredFileName}.", safeFileName);
+
+            return Task.CompletedTask;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new ImageStorageException(
+                "The stored image file could not be deleted.",
+                exception);
+        }
+    }
+
     private void TryDeletePartialFile(string destinationPath)
     {
         try

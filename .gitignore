@@ -374,3 +374,8 @@ __pycache__/
 
 # Python test cache
 .pytest_cache/
+
+# Local SQLite database
+CodeOcr.Api/App_Data/*.db
+CodeOcr.Api/App_Data/*.db-shm
+CodeOcr.Api/App_Data/*.db-wal
