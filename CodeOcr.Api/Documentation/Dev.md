@@ -49,6 +49,22 @@ c:\> dotnet test
 - visual studio .http tests (Tests/HttpTests)
     - api-image-validate-1.http
 
+## How to initialize database
+- open Package Manager Console
+- set default project to CodeOcr.Api
+- run
+```powershell
+Add-Migration InitialOcrPersistence -OutputDir Persistence\Migrations
+```
+- check generated migrations
+- remove generated migrations
+```powershell
+Remove-Migration
+```
+- apply migrations to database
+```powershell
+Update-Database
+```
 ## Powershell issues
 - how to check current ps version
 ```powershell
@@ -136,3 +152,56 @@ JsonException
 All classes are sealed by default. If a class is designed to be inherited, it should be explicitly marked as `abstract` or `virtual`. If a class is not designed for inheritance, it should be marked as `sealed`.
 ## To do
 - on webpage i want to have icon green when ocr service is working, red when not
+
+## Issues
+- can not add migration (Package Manager console)
+```log
+PM> Add-Migration InitialOcrPersistence -OutputDir Persistence\Migrations
+Build started...
+Build succeeded.
+The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: E:\Repo\Project19\CodeOcr.Api\CodeOcr.Api.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.11 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+```
+- check vulnerabilities (Powershell console)
+```log
+PS E:\Repo\Project19> dotnet list package --vulnerable
+Restore succeeded with 2 warning(s) in 0,7s
+    E:\Repo\Project19\CodeOcr.Tests\CodeOcr.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.11 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    E:\Repo\Project19\CodeOcr.Api\CodeOcr.Api.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.11 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+
+Build succeeded with 2 warning(s) in 0,8s
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+   D:\TMP\NugetPackageRepo
+
+The given project `CodeOcr.Api` has no vulnerable packages given the current sources.
+The given project `CodeOcr.Tests` has no vulnerable packages given the current sources.
+```
+- there is vulnerability and there is no vulnerability in the same time. it means vulnerability is not detected in package but in dependencies, so check vulnerabilities inside dependencies as well
+```log
+PS E:\Repo\Project19> dotnet list package --vulnerable --include-transitive
+Restore succeeded with 2 warning(s) in 0,7s
+    E:\Repo\Project19\CodeOcr.Tests\CodeOcr.Tests.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.11 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    E:\Repo\Project19\CodeOcr.Api\CodeOcr.Api.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.11 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+
+Build succeeded with 2 warning(s) in 0,8s
+
+The following sources were used:
+   https://api.nuget.org/v3/index.json
+   D:\TMP\NugetPackageRepo
+
+Project `CodeOcr.Api` has the following vulnerable packages
+   [net10.0]:
+   Transitive Package                Resolved   Severity   Advisory URL
+   > SQLitePCLRaw.lib.e_sqlite3      2.1.11     High       https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+
+Project `CodeOcr.Tests` has the following vulnerable packages
+   [net10.0]:
+   Transitive Package                Resolved   Severity   Advisory URL
+   > SQLitePCLRaw.lib.e_sqlite3      2.1.11     High       https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+```
+- update dependency directly (Powershell console)
+```log
+PS E:\Repo\Project19> cd .\CodeOcr.Api\
+PS E:\Repo\Project19\CodeOcr.Api> dotnet add package SQLitePCLRaw.lib.e_sqlite3 --version 2.1.12
+```

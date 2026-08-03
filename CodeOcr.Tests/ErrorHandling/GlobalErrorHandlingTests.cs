@@ -201,5 +201,10 @@ public sealed class GlobalErrorHandlingTests
                 new IOException(
                     "Simulated disk failure."));
         }
+
+        public Task DeleteAsync(string storedFileName, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
